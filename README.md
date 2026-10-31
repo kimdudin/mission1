@@ -28,7 +28,7 @@
 - OS: Windows + WSL2 (Ubuntu 26.04.1 LTS)
 - 쉘/터미널: bash (/bin/bash), VSCode 통합 터미널(WSL: Ubuntu)
 - Git: 2.53.0
-- Docker: (작성 예정)
+- Docker: Docker: 29.9.2 (Docker Desktop 4.97.0, WSL2 백엔드)
 - 참고: 안내문은 macOS의 OrbStack 기준이지만, Windows 환경이라 WSL2 + Docker Desktop으로 대체한다.
 
 ```bash
@@ -160,9 +160,40 @@ Server:
 ```
 
 ### 7-2. hello-world 실행
+
 ```bash
 $ docker run hello-world
-(출력 전체 붙여넣기)
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+4f55086f7dd0: Pull complete 
+d5e71e642bf5: Download complete 
+Digest: sha256:c567b231f65614688711a75f31518a064258a51d442117a3e771a3a8fdba78ef
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+```
+
+- 로컬에 `hello-world` 이미지가 없어서 Docker Hub에서 내려받은 뒤(`Pulling`, `Downloaded newer image`) 컨테이너를 실행했다.
+- `Hello from Docker!`가 출력되어 클라이언트, 데몬, 이미지 다운로드, 컨테이너 실행 흐름이 정상 동작함을 확인했다.
 ```
 ### 7-3. 이미지/컨테이너 조회
 (docker images, docker ps, docker ps -a, docker logs 출력)
@@ -188,18 +219,46 @@ COPY index.html /usr/share/nginx/html/index.html
 
 ### 8-2. 빌드/실행 및 포트 매핑 확인
 
-```bash
+```
 $ docker build -t mission1-web .
-(빌드 출력 붙여넣기)
+[+] Building 1.1s (7/7) FINISHED                                    docker:default
+ => [internal] load build definition from Dockerfile
+ => => transferring dockerfile: 104B
+ => [internal] load metadata for docker.io/library/nginx:alpine
+ => [internal] load .dockerignore
+ => => transferring context: 2B
+ => [internal] load build context
+ => => transferring context: 198B
+ => [1/2] FROM docker.io/library/nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606
+ => => resolve docker.io/library/nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606
+ => CACHED [2/2] COPY index.html /usr/share/nginx/html/index.html
+ => exporting to image
+ => => exporting layers
+ => => exporting manifest sha256:340a3c8a1e760a173965b4cdbd262e89d8ea197ea4f1e932b1d59b74d9a04e59
+ => => exporting config sha256:f554c1d4a18e325abd70886269185215a974a158e43a445b5581eb369af1a58e
+ => => exporting attestation manifest sha256:ed6cff06d30c9599eaa9c915a49e8b6f74522c0dbd6387835d29b8b23ede1d17
+ => => exporting manifest list sha256:bee4b6f4203325598b14fd0b9ee729fd1f410761cad4026a69a3441dfec94bc3
+ => => naming to docker.io/library/mission1-web:latest
+ => => unpacking to docker.io/library/mission1-web:latest
 
 $ docker run -d --name web -p 8080:80 mission1-web
-(컨테이너 ID 출력 붙여넣기)
+eeeaf06452fe200bea4221bad9a8427d60f301292addd5203b73f597a614e725
 
 $ docker ps
-(docker ps 출력 붙여넣기)
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   7 seconds ago   Up 7 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
 
 $ curl http://localhost:8080
-(curl 출력 붙여넣기)
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello from my custom NGINX container</h1></body>
+</html>
+```
+
+- `docker build`는 `app/Dockerfile`을 기준으로 `nginx:alpine` 위에 `index.html`을 복사한 이미지 `mission1-web`을 만든다. (`COPY` 단계가 `CACHED`인 것은 파일 내용이 이전 빌드와 같아 레이어를 재사용했기 때문이다.)
+- `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트에서 접속할 수 있다.
+- `docker ps`의 `PORTS` 열 `0.0.0.0:8080->80/tcp`가 포트 매핑이 적용된 증거이고, `curl` 응답이 컨테이너의 NGINX가 내 `index.html`을 서빙한다는 증거이다.
 ```
 
 - `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다는 뜻이다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
@@ -301,3 +360,10 @@ branch.main.remote=origin
 - 원인 가설: 새 컴퓨터라 Git 사용자 정보가 비어 있음
 - 확인: 오류 메시지가 `user.name`, `user.email` 설정을 안내
 - 해결: `git config --global user.name`, `user.email` 설정 후 재시도
+
+### 10-4. 이미지를 다시 만들었는데 바뀐 문구가 그대로 나옴
+- 문제: `index.html`을 원래 문구로 되돌렸다고 생각했는데 `curl`에 바인드 마운트 실습 때의 문구가 계속 나옴
+- 원인 가설: 파일이 실제로 복원되지 않았고, 그 파일로 만든 컨테이너가 응답하고 있음
+- 확인: `cat index.html`로 파일 내용, `docker ps`로 실행 중인 컨테이너 확인
+- 해결: `sed`로 파일 복원 후 `docker rm -f web web-bind`, `docker build`, `docker run`을 다시 실행
+- 배운 점: `COPY`로 만든 이미지는 빌드 시점의 파일이 고정되고, 바인드 마운트는 호스트 파일을 실시간으로 본다.
