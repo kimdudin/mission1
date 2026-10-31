@@ -389,7 +389,7 @@ $ cd ~/mission1/app
 $ docker rm -f web
 web
 $ docker run -d --name web-bind -p 8080:80 -v "$(pwd)":/usr/share/nginx/html mission1-web
-(b5a730d937364fcfd24b3e02971039aa78d809e76e602ac58b7e4303c31cc964)
+b5a730d937364fcfd24b3e02971039aa78d809e76e602ac58b7e4303c31cc964
 ```
 
 - `-v "$(pwd)":/usr/share/nginx/html`: 호스트의 현재 폴더(`app`)를 컨테이너의 `/usr/share/nginx/html`에 연결한다.
@@ -460,7 +460,45 @@ persistent data
 $ docker ps -a        # 삭제 전: vol-test 존재
 CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                     PORTS                                     NAMES
 50ce25889e11   ubuntu         "cat /data/test.txt"     6 seconds ago   Exited (0) 5 seconds ago                                             vol-test
-eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   8 minutes ago   Up 8 minutes               0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   8 minutes ago   Up 8 minutes               0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+(이하 test-ubuntu, wizardly_haslett, flamboyant_vaughan 행 생략)
+
+$ docker rm vol-test
+vol-test
+
+$ docker ps -a        # 삭제 후: vol-test 없음
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                   PORTS                                     NAMES
+eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   9 minutes ago   Up 9 minutes             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+(이하 test-ubuntu, wizardly_haslett, flamboyant_vaughan 행 생략)
+```
+
+#### 컨테이너 삭제 후 새 컨테이너로 데이터 확인
+```
+$ docker run --rm -v mydata:/data ubuntu cat /data/test.txt
+persistent data
+```
+
+#### 볼륨 상세
+```
+$ docker volume inspect mydata
+[
+    {
+        "CreatedAt": "2026-10-31T09:04:22Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/mydata/_data",
+        "Name": "mydata",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+#### 정리
+- 볼륨은 Docker가 관리하는 저장 공간으로, 컨테이너의 수명과 분리되어 있다. 컨테이너를 삭제해도 데이터가 남는다.
+- 바인드 마운트는 호스트 경로를 직접 연결하고, 볼륨은 Docker가 위치를 관리한다. DB 데이터처럼 영속성이 필요한 경우에 적합하다.
+- 컨테이너는 일회용으로 만들고, 유지해야 할 데이터는 볼륨에 두는 설계가 재현 가능한 환경의 기반이다.
+
 
 ## 9. Git 설정 및 GitHub 연동
 
