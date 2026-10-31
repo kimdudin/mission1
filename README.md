@@ -389,7 +389,7 @@ $ cd ~/mission1/app
 $ docker rm -f web
 web
 $ docker run -d --name web-bind -p 8080:80 -v "$(pwd)":/usr/share/nginx/html mission1-web
-(컨테이너 ID 출력)
+(b5a730d937364fcfd24b3e02971039aa78d809e76e602ac58b7e4303c31cc964)
 ```
 
 - `-v "$(pwd)":/usr/share/nginx/html`: 호스트의 현재 폴더(`app`)를 컨테이너의 `/usr/share/nginx/html`에 연결한다.
@@ -397,7 +397,11 @@ $ docker run -d --name web-bind -p 8080:80 -v "$(pwd)":/usr/share/nginx/html mis
 #### 변경 전
 ```
 $ curl http://localhost:8080
-(변경 전 curl 출력: Hello from my custom NGINX container)
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello from my custom NGINX container</h1></body>
+</html>
 ```
 
 #### 호스트에서 파일 수정 (컨테이너에서는 아무 작업도 하지 않음)
