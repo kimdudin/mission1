@@ -177,7 +177,7 @@ $ docker run hello-world
 - 결론: exec은 실행 중인 컨테이너에 새 프로세스를 추가하므로 exit해도 컨테이너가 유지된다. attach는 메인 프로세스(bash)에 연결하므로 exit하면 컨테이너도 종료된다.
 
 ## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
-## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
+
 
 ### 8-1. 커스텀 이미지 (A안: NGINX 베이스)
 - 베이스 이미지: `nginx:alpine`
@@ -188,10 +188,23 @@ FROM nginx:alpine
 COPY index.html /usr/share/nginx/html/index.html
 ```
 
-### 8-2. 빌드/실행
+### 8-2. 빌드/실행 및 포트 매핑 확인
+
 ```bash
-(docker build, docker run, curl 출력 붙여넣기)
+$ docker build -t mission1-web .
+(빌드 출력 붙여넣기)
+
+$ docker run -d --name web -p 8080:80 mission1-web
+(컨테이너 ID 출력 붙여넣기)
+
+$ docker ps
+(docker ps 출력 붙여넣기)
+
+$ curl http://localhost:8080
+(curl 출력 붙여넣기)
 ```
+
+- `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다는 뜻이다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
 
 ### 8-3. 포트 매핑 증거
 ![포트 매핑 접속 화면 (localhost:8080)](docs/images/port-mapping.png)
