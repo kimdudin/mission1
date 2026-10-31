@@ -26,8 +26,8 @@ git version 2.53.0
 - [x] 터미널 기본 조작 (위치/목록/이동/생성/복사/이동/삭제/내용 확인)
 - [x] 권한 실습 (파일 1개, 디렉토리 1개)
 - [ ] Docker 설치 및 점검
-- [ ] Docker 기본 운영 명령
-- [ ] hello-world / ubuntu 컨테이너 실행
+- [x] Docker 기본 운영 명령
+- [x] hello-world / ubuntu 컨테이너 실행
 - [ ] Dockerfile 기반 커스텀 이미지
 - [ ] 포트 매핑 접속 확인
 - [ ] 바인드 마운트
@@ -124,7 +124,38 @@ drwx------ 2 sujin sujin 4096 Oct 31 14:23 mydir       # 변경 후
 
 ## 7. Docker 설치 및 운영
 
-(작성 예정)
+- Docker: 29.9.2 (Docker Desktop 4.97.0, WSL2 백엔드)
+
+## 7. Docker 설치 및 운영
+
+### 7-1. 버전 및 데몬 점검
+```bash
+$ docker --version
+Docker version 29.9.2, build a82e528
+$ docker info
+(Client/Server 출력 중 Server 부분 발췌)
+Server:
+ Containers: 0
+ Images: 0
+ Server Version: 29.9.2
+ Operating System: Docker Desktop
+ Kernel Version: 6.18.54.1-microsoft-standard-WSL2
+```
+
+### 7-2. hello-world 실행
+```bash
+$ docker run hello-world
+(출력 전체 붙여넣기)
+```
+### 7-3. 이미지/컨테이너 조회
+(docker images, docker ps, docker ps -a, docker logs 출력)
+
+### 7-4. ubuntu 컨테이너 실행
+(docker run -it ubuntu bash ~ exit 출력)
+
+### 7-5. attach vs exec, docker stats
+(docker run -dit ~ docker ps -a 출력)
+- 결론: exec은 실행 중인 컨테이너에 새 프로세스를 추가하므로 exit해도 컨테이너가 유지된다. attach는 메인 프로세스(bash)에 연결하므로 exit하면 컨테이너도 종료된다.
 
 ## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
 
