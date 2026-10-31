@@ -145,8 +145,6 @@ drwx------ 2 sujin sujin 4096 Oct 31 14:23 mydir       # 변경 후
 
 - Docker: 29.9.2 (Docker Desktop 4.97.0, WSL2 백엔드)
 
-## 7. Docker 설치 및 운영
-
 ### 7-1. 버전 및 데몬 점검
 ```bash
 $ docker --version
