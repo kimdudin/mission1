@@ -4,6 +4,25 @@
 
 터미널(리눅스 CLI), Docker, Git/GitHub를 직접 세팅하고 사용해 보며, 누구나 같은 방식으로 실행·배포·디버깅할 수 있는 개발 환경을 구성한다. 모든 수행 과정은 명령어와 출력 결과로 이 문서에 기록한다.
 
+## 저장소 구조
+
+```text
+.
+├── README.md                  # 기술 문서 (전체 수행 기록)
+├── app                        # Dockerfile 기반 웹 서버
+│   ├── Dockerfile             # nginx:alpine 기반 커스텀 이미지
+│   └── index.html             # 교체한 정적 콘텐츠
+├── docs
+│   └── images                 # README에 첨부한 증거 스크린샷
+│       ├── github-vscode-login.png
+│       └── port-mapping.png
+└── practice                   # 터미널/권한 실습 파일
+    ├── hello.txt
+    └── mydir                  # 권한 실습용 (빈 디렉토리라 Git에는 올라가지 않음)
+```
+
+- 출력은 `tree -a -I '.git'` 결과이며, 주석은 설명을 위해 직접 추가했다.
+
 ## 2. 실행 환경
 
 - OS: Windows + WSL2 (Ubuntu 26.04.1 LTS)
@@ -28,8 +47,8 @@ git version 2.53.0
 - [ ] Docker 설치 및 점검
 - [x] Docker 기본 운영 명령
 - [x] hello-world / ubuntu 컨테이너 실행
-- [ ] Dockerfile 기반 커스텀 이미지
-- [ ] 포트 매핑 접속 확인
+- [x] Dockerfile 기반 커스텀 이미지
+- [x] 포트 매핑 접속 확인
 - [ ] 바인드 마운트
 - [ ] Docker 볼륨 영속성
 - [x] Git 설정
@@ -158,8 +177,26 @@ $ docker run hello-world
 - 결론: exec은 실행 중인 컨테이너에 새 프로세스를 추가하므로 exit해도 컨테이너가 유지된다. attach는 메인 프로세스(bash)에 연결하므로 exit하면 컨테이너도 종료된다.
 
 ## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
+## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
 
-(작성 예정)
+### 8-1. 커스텀 이미지 (A안: NGINX 베이스)
+- 베이스 이미지: `nginx:alpine`
+- 커스텀 포인트: 기본 index.html을 내가 만든 `app/index.html`로 교체 (정적 콘텐츠 교체)
+
+```dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+```
+
+### 8-2. 빌드/실행
+```bash
+(docker build, docker run, curl 출력 붙여넣기)
+```
+
+### 8-3. 포트 매핑 증거
+![포트 매핑 접속 화면 (localhost:8080)](docs/images/port-mapping.png)
+
+- `-p 8080:80`: 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로, 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
 
 ## 9. Git 설정 및 GitHub 연동
 
