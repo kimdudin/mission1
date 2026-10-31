@@ -49,8 +49,8 @@ git version 2.53.0
 - [x] hello-world / ubuntu 컨테이너 실행
 - [x] Dockerfile 기반 커스텀 이미지
 - [x] 포트 매핑 접속 확인
-- [ ] 바인드 마운트
-- [ ] Docker 볼륨 영속성
+- [x] 바인드 마운트
+- [x] Docker 볼륨 영속성
 - [x] Git 설정
 - [x] GitHub/VSCode 연동 증거
 
@@ -210,6 +210,61 @@ $ curl http://localhost:8080
 ![포트 매핑 접속 화면 (localhost:8080)](docs/images/port-mapping.png)
 
 - `-p 8080:80`: 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로, 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
+
+### 8-4. Docker 볼륨 영속성
+
+**목적:** 컨테이너를 삭제해도 볼륨의 데이터가 남는지 확인한다.
+
+#### 볼륨 생성 및 확인
+```bash
+$ docker volume create mydata
+mydata
+$ docker volume ls
+(출력)
+```
+
+#### 컨테이너에 볼륨 연결 후 데이터 쓰기
+```bash
+$ docker run --name vol-test -v mydata:/data ubuntu bash -c "echo 'persistent data' > /data/test.txt && cat /data/test.txt"
+persistent data
+```
+
+#### 컨테이너 삭제 전/후
+```bash
+$ docker ps -a        # 삭제 전: vol-test 존재
+(출력)
+$ docker rm vol-test
+vol-test
+$ docker ps -a        # 삭제 후: vol-test 없음
+(출력)
+```
+
+#### 새 컨테이너로 데이터 확인
+```bash
+$ docker run --rm -v mydata:/data ubuntu cat /data/test.txt
+persistent data
+```
+
+#### 볼륨 상세
+```bash
+$ docker volume inspect mydata
+[
+    {
+        "CreatedAt": "2026-10-31T09:04:22Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/mydata/_data",
+        "Name": "mydata",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+#### 정리
+- 볼륨은 Docker가 관리하는 저장 공간으로, 컨테이너의 수명과 분리되어 있다. 컨테이너를 삭제해도 데이터가 남는다.
+- 바인드 마운트는 호스트 경로를 직접 연결하고, 볼륨은 Docker가 위치를 관리한다. DB 데이터처럼 영속성이 필요한 경우에 적합하다.
+- 컨테이너는 일회용으로 만들고, 유지해야 할 데이터는 볼륨에 두는 설계가 재현 가능한 환경의 기반이다.
 
 ## 9. Git 설정 및 GitHub 연동
 
