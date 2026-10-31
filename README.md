@@ -44,7 +44,7 @@ git version 2.53.0
 
 - [x] 터미널 기본 조작 (위치/목록/이동/생성/복사/이동/삭제/내용 확인)
 - [x] 권한 실습 (파일 1개, 디렉토리 1개)
-- [ ] Docker 설치 및 점검
+- [x] Docker 설치 및 점검
 - [x] Docker 기본 운영 명령
 - [x] hello-world / ubuntu 컨테이너 실행
 - [x] Dockerfile 기반 커스텀 이미지
@@ -569,3 +569,21 @@ branch.main.remote=origin
 - 확인: `cat index.html`로 파일 내용, `docker ps`로 실행 중인 컨테이너 확인
 - 해결: `sed`로 파일 복원 후 `docker rm -f web web-bind`, `docker build`, `docker run`을 다시 실행
 - 배운 점: `COPY`로 만든 이미지는 빌드 시점의 파일이 고정되고, 바인드 마운트는 호스트 파일을 실시간으로 본다.
+
+### 10-5. docker stats 옵션 오타
+- 문제: `docker stats --no--stream` 실행 시 `unknown flag: --no--stream`
+- 원인 가설: 옵션 이름의 하이픈을 잘못 입력함
+- 확인: 오류 메시지의 `Usage` 안내와 `docker stats --help`
+- 해결: `docker stats --no-stream`으로 수정해 정상 출력
+
+### 10-6. 컨테이너 이름 충돌
+- 문제: `docker run --name web-bind ...` 실행 시 `Conflict. The container name "/web-bind" is already in use`
+- 원인 가설: 이전 실습에서 만든 같은 이름의 컨테이너가 남아 있음
+- 확인: 오류 메시지의 기존 컨테이너 ID, `docker ps -a`로 목록 확인
+- 해결: `docker rm -f web-bind`로 삭제한 뒤 다시 실행
+
+### 10-7. git push 거부 (fetch first)
+- 문제: `! [rejected] main -> main (fetch first)`
+- 원인 가설: 원격에 로컬에 없는 commit이 있음
+- 확인: `git log --oneline`으로 원격에만 있는 commit 확인
+- 해결: `git pull --no-rebase`로 합친 뒤 `git push`
