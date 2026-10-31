@@ -6,8 +6,7 @@
 
 ## 1-1. 저장소 구조
 
-```text
-.
+
 ├── README.md                  # 기술 문서 (전체 수행 기록)
 ├── app                        # Dockerfile 기반 웹 서버
 │   ├── Dockerfile             # nginx:alpine 기반 커스텀 이미지
