@@ -196,14 +196,126 @@ For more examples and ideas, visit:
 - `Hello from Docker!`가 출력되어 클라이언트, 데몬, 이미지 다운로드, 컨테이너 실행 흐름이 정상 동작함을 확인했다.
 ```
 ### 7-3. 이미지/컨테이너 조회
-(docker images, docker ps, docker ps -a, docker logs 출력)
+
+```
+$ docker images
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+hello-world:latest   c567b231f656       25.9kB         9.49kB    U
+
+$ docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker ps -a
+CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                      PORTS     NAMES
+8e78e2fe53bc   hello-world   "/hello"   33 minutes ago   Exited (0) 33 minutes ago             flamboyant_vaughan
+
+$ docker logs flamboyant_vaughan
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+```
+
+- `docker images`: 내려받은 `hello-world` 이미지가 목록에 있다.
+- `docker ps`: 실행 중인 컨테이너가 없어 비어 있다. hello-world는 메시지를 출력하고 바로 종료되기 때문이다.
+- `docker ps -a`: 종료된 컨테이너까지 보인다. `Exited (0)`은 정상 종료를 뜻한다.
+- `docker logs`: 컨테이너가 출력한 내용을 종료된 뒤에도 다시 볼 수 있다.
 
 ### 7-4. ubuntu 컨테이너 실행
-(docker run -it ubuntu bash ~ exit 출력)
+
+```
+$ docker run -it ubuntu bash
+Unable to find image 'ubuntu:latest' locally
+latest: Pulling from library/ubuntu
+f3f25b84a7d7: Pull complete
+edafa32f5d9e: Pull complete
+21594acc2d8b: Download complete
+Digest: sha256:6a06111c3b0a8600feadb270aec771dc239bf407b25625f93f44ab00e11f4d3c
+Status: Downloaded newer image for ubuntu:latest
+root@739237b54df7:/# ls
+bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+root@739237b54df7:/# echo hello from container
+hello from container
+root@739237b54df7:/# cat /etc/os-release
+PRETTY_NAME="Ubuntu 26.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04.1 LTS (Resolute Raccoon)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=resolute
+LOGO=ubuntu-logo
+root@739237b54df7:/# hostname
+739237b54df7
+root@739237b54df7:/# exit
+exit
+
+$ docker ps -a
+CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                      PORTS     NAMES
+739237b54df7   ubuntu        "bash"     2 minutes ago    Exited (0) 13 seconds ago             wizardly_haslett
+8e78e2fe53bc   hello-world   "/hello"   36 minutes ago   Exited (0) 36 minutes ago             flamboyant_vaughan
+```
+
+- 로컬에 `ubuntu` 이미지가 없어 Docker Hub에서 내려받은 뒤 컨테이너를 실행했다.
+- 프롬프트가 `root@739237b54df7:/#`로 바뀌어 컨테이너 안에 들어온 것을 알 수 있고, `ls`와 `echo`가 정상 동작했다.
+- `hostname`이 컨테이너 ID(`739237b54df7`)로 나온다. 호스트 이름(`DESKTOP-GPNP5PR`)과 다르므로 호스트와 격리된 별도 환경이다.
+- `exit`로 나오자 메인 프로세스인 `bash`가 끝나 컨테이너도 `Exited (0)`이 되었다.
 
 ### 7-5. attach vs exec, docker stats
-(docker run -dit ~ docker ps -a 출력)
-- 결론: exec은 실행 중인 컨테이너에 새 프로세스를 추가하므로 exit해도 컨테이너가 유지된다. attach는 메인 프로세스(bash)에 연결하므로 exit하면 컨테이너도 종료된다.
+
+```
+$ docker run -dit --name test-ubuntu ubuntu bash
+7374fd47f8089e40dbc63930d379e26b5c50663bddc56b710f4fe20bc80512f1
+
+$ docker exec -it test-ubuntu bash
+root@7374fd47f808:/# exit
+exit
+
+$ docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED          STATUS          PORTS     NAMES
+7374fd47f808   ubuntu    "bash"    27 seconds ago   Up 26 seconds             test-ubuntu
+
+$ docker stats --no-stream
+CONTAINER ID   NAME          CPU %     MEM USAGE / LIMIT     MEM %     NET I/O         BLOCK I/O        PIDS
+7374fd47f808   test-ubuntu   0.00%     10.98MiB / 7.617GiB   0.14%     1.17kB / 126B   20.6MB / 4.1kB   1
+
+$ docker attach test-ubuntu
+root@7374fd47f808:/# exit
+exit
+
+$ docker ps -a
+CONTAINER ID   IMAGE         COMMAND    CREATED              STATUS                      PORTS     NAMES
+7374fd47f808   ubuntu        "bash"     About a minute ago   Exited (0) 5 seconds ago              test-ubuntu
+739237b54df7   ubuntu        "bash"     4 minutes ago        Exited (0) 2 minutes ago              wizardly_haslett
+8e78e2fe53bc   hello-world   "/hello"   39 minutes ago       Exited (0) 39 minutes ago             flamboyant_vaughan
+```
+
+#### 관찰 결과
+- `docker exec` 후 `exit`: 새로 띄운 셸만 종료되고 컨테이너는 계속 실행 중이다. (`docker ps`에서 `Up 26 seconds`)
+- `docker attach` 후 `exit`: 컨테이너의 메인 프로세스(`bash`)가 종료되어 컨테이너도 `Exited (0)`이 된다. (`docker ps -a`에서 확인)
+- 정리: `exec`은 실행 중인 컨테이너에 **새 프로세스를 추가**하는 것이고, `attach`는 **메인 프로세스에 직접 연결**하는 것이다. 컨테이너의 수명은 메인 프로세스에 달려 있다.
+- `docker stats`: 실행 중인 `test-ubuntu`의 CPU 0.00%, 메모리 10.98MiB 사용을 확인했다. 컨테이너가 종료되면 `docker stats`에는 나타나지 않는다.
 
 ## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
 
@@ -363,6 +475,31 @@ branch.main.remote=origin
 ```
 
 ![VSCode GitHub 로그인 및 push 성공](docs/images/github-vscode-login.png)
+
+## 개념 정리
+
+### 이미지와 컨테이너
+- 이미지는 실행에 필요한 파일과 설정을 담은 **읽기 전용 템플릿**이다. (예: `ubuntu`, `mission1-web`)
+- 컨테이너는 이미지를 바탕으로 만든 **실행 중인(또는 종료된) 인스턴스**이다.
+- 하나의 이미지로 컨테이너를 여러 개 만들 수 있다. 컨테이너를 지워도 이미지는 남는다.
+- 실습에서 확인: 같은 `ubuntu` 이미지로 `wizardly_haslett`, `test-ubuntu` 두 컨테이너를 만들었고, 각각 다른 ID와 hostname을 가졌다.
+- 컨테이너는 호스트와 격리된 환경이라 "내 컴퓨터에서만 돌아가는" 문제를 줄인다.
+
+### 포트 매핑이 필요한 이유
+- 컨테이너는 자체 네트워크를 쓰므로, 컨테이너 안의 80 포트는 호스트에서 바로 접근할 수 없다.
+- `-p 8080:80`으로 호스트 8080 포트와 컨테이너 80 포트를 연결해야 호스트 브라우저에서 접속된다.
+- 실습에서 확인: `docker ps`의 `0.0.0.0:8080->80/tcp`와 `curl http://localhost:8080` 응답.
+
+### Docker 볼륨 (영속 데이터)
+- 컨테이너의 파일시스템은 컨테이너를 삭제하면 함께 사라진다.
+- 볼륨은 Docker가 관리하는 별도 저장 공간이라 컨테이너의 수명과 분리된다.
+- 실습에서 확인: `vol-test` 컨테이너를 삭제한 뒤에도 새 컨테이너가 `mydata` 볼륨의 `persistent data`를 읽었다.
+
+### Git과 GitHub의 차이
+- Git은 내 컴퓨터에서 변경 이력을 관리하는 **로컬 버전 관리 도구**이다. (`add`, `commit` 등)
+- GitHub는 Git 저장소를 인터넷에 올려 **백업, 공유, 협업**을 하게 해 주는 **원격 플랫폼**이다. (`push`, `pull`)
+- 실습에서 확인: 로컬에서 `commit`만 한 상태는 GitHub에 없었고, `push`한 뒤 저장소 페이지에 반영되었다. 원격에 새 commit이 있어 push가 거부되었을 때는 `pull` 후 합쳐서 해결했다.
+
 
 ## 10. 트러블슈팅
 
