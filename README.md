@@ -33,7 +33,7 @@ git version 2.53.0
 - [ ] 바인드 마운트
 - [ ] Docker 볼륨 영속성
 - [x] Git 설정
-- [ ] GitHub/VSCode 연동 증거
+- [x] GitHub/VSCode 연동 증거
 
 ## 4. 터미널 조작 로그
 
