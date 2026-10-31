@@ -146,7 +146,7 @@ remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
 branch.main.remote=origin
 ```
 
-- VSCode(WSL: Ubuntu) 연동 및 GitHub 로그인 증거: (스크린샷 첨부 예정)
+![VSCode GitHub 로그인 및 push 성공](docs/images/github-vscode-login.png)
 
 ## 10. 트러블슈팅
 
