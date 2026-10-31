@@ -207,10 +207,11 @@ For more examples and ideas, visit:
 
 ## 8. Dockerfile / 포트 매핑 / 마운트 / 볼륨
 
-
 ### 8-1. 커스텀 이미지 (A안: NGINX 베이스)
+
 - 베이스 이미지: `nginx:alpine`
-- 커스텀 포인트: 기본 index.html을 내가 만든 `app/index.html`로 교체 (정적 콘텐츠 교체)
+- 커스텀 포인트: 기본 `index.html`을 내가 만든 `app/index.html`로 교체 (정적 콘텐츠 교체)
+- 목적: 공식 NGINX 이미지를 그대로 쓰되, 내 콘텐츠가 담긴 이미지를 만들어 어디서 실행해도 같은 결과가 나오게 한다.
 
 ```dockerfile
 FROM nginx:alpine
@@ -257,71 +258,93 @@ $ curl http://localhost:8080
 ```
 
 - `docker build`는 `app/Dockerfile`을 기준으로 `nginx:alpine` 위에 `index.html`을 복사한 이미지 `mission1-web`을 만든다. (`COPY` 단계가 `CACHED`인 것은 파일 내용이 이전 빌드와 같아 레이어를 재사용했기 때문이다.)
-- `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트에서 접속할 수 있다.
+- `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
 - `docker ps`의 `PORTS` 열 `0.0.0.0:8080->80/tcp`가 포트 매핑이 적용된 증거이고, `curl` 응답이 컨테이너의 NGINX가 내 `index.html`을 서빙한다는 증거이다.
-```
-
-- `-p 8080:80`은 호스트 8080 포트를 컨테이너 80 포트에 연결한다는 뜻이다. 컨테이너는 격리된 네트워크를 쓰므로 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
 
 ### 8-3. 포트 매핑 증거
+
 ![포트 매핑 접속 화면 (localhost:8080)](docs/images/port-mapping.png)
 
-- `-p 8080:80`: 호스트 8080 포트를 컨테이너 80 포트에 연결한다. 컨테이너는 격리된 네트워크를 쓰므로, 포트를 연결해야 호스트 브라우저에서 접속할 수 있다.
+- 브라우저 주소창의 `localhost:8080`으로 접속해 컨테이너의 NGINX 페이지가 표시되는 것을 확인했다.
 
-### 8-4. Docker 볼륨 영속성
+### 8-4. 바인드 마운트 (호스트 변경 반영)
+
+**목적:** 호스트의 `app` 폴더를 컨테이너의 NGINX 웹 루트에 연결해, 이미지를 다시 빌드하지 않고도 호스트에서 고친 내용이 컨테이너에 바로 반영되는지 확인한다.
+
+#### 실행
+```
+$ cd ~/mission1/app
+$ docker rm -f web
+web
+$ docker run -d --name web-bind -p 8080:80 -v "$(pwd)":/usr/share/nginx/html mission1-web
+(컨테이너 ID 출력)
+```
+
+- `-v "$(pwd)":/usr/share/nginx/html`: 호스트의 현재 폴더(`app`)를 컨테이너의 `/usr/share/nginx/html`에 연결한다.
+
+#### 변경 전
+```
+$ curl http://localhost:8080
+(변경 전 curl 출력: Hello from my custom NGINX container)
+```
+
+#### 호스트에서 파일 수정 (컨테이너에서는 아무 작업도 하지 않음)
+```
+$ sed -i 's/Hello from my custom NGINX container/Hello! Changed on the host (bind mount)/' index.html
+$ cat index.html
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello! Changed on the host (bind mount)</h1></body>
+</html>
+```
+
+#### 변경 후 (재시작/재빌드 없음)
+```
+$ curl http://localhost:8080
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello! Changed on the host (bind mount)</h1></body>
+</html>
+```
+
+#### 마운트 정보 확인
+```
+$ docker inspect web-bind --format '{{json .Mounts}}'
+[{"Type":"bind","Source":"/home/sujin/mission1/app","Destination":"/usr/share/nginx/html","Mode":"","RW":true,"Propagation":"rprivate"}]
+```
+
+#### 정리
+- 바인드 마운트는 호스트의 경로를 그대로 컨테이너에 연결하므로, 호스트에서 수정한 내용이 즉시 반영된다.
+- 8-2처럼 `COPY`로 만든 이미지는 빌드 시점의 파일이 이미지에 고정된다. 반면 바인드 마운트는 호스트 파일을 실시간으로 보기 때문에 개발 중 코드나 콘텐츠를 자주 고칠 때 유용하다.
+- 호스트 경로에 의존하므로 다른 환경에서는 같은 경로가 없을 수 있어 재현성은 떨어진다. 이 점이 Docker 볼륨(8-5)과의 차이이다.
+
+### 8-5. Docker 볼륨 영속성
 
 **목적:** 컨테이너를 삭제해도 볼륨의 데이터가 남는지 확인한다.
 
 #### 볼륨 생성 및 확인
-```bash
+```
 $ docker volume create mydata
 mydata
 $ docker volume ls
-(출력)
+DRIVER    VOLUME NAME
+local     mydata
 ```
 
 #### 컨테이너에 볼륨 연결 후 데이터 쓰기
-```bash
+```
 $ docker run --name vol-test -v mydata:/data ubuntu bash -c "echo 'persistent data' > /data/test.txt && cat /data/test.txt"
 persistent data
 ```
 
 #### 컨테이너 삭제 전/후
-```bash
+```
 $ docker ps -a        # 삭제 전: vol-test 존재
-(출력)
-$ docker rm vol-test
-vol-test
-$ docker ps -a        # 삭제 후: vol-test 없음
-(출력)
-```
-
-#### 새 컨테이너로 데이터 확인
-```bash
-$ docker run --rm -v mydata:/data ubuntu cat /data/test.txt
-persistent data
-```
-
-#### 볼륨 상세
-```bash
-$ docker volume inspect mydata
-[
-    {
-        "CreatedAt": "2026-10-31T09:04:22Z",
-        "Driver": "local",
-        "Labels": null,
-        "Mountpoint": "/var/lib/docker/volumes/mydata/_data",
-        "Name": "mydata",
-        "Options": null,
-        "Scope": "local"
-    }
-]
-```
-
-#### 정리
-- 볼륨은 Docker가 관리하는 저장 공간으로, 컨테이너의 수명과 분리되어 있다. 컨테이너를 삭제해도 데이터가 남는다.
-- 바인드 마운트는 호스트 경로를 직접 연결하고, 볼륨은 Docker가 위치를 관리한다. DB 데이터처럼 영속성이 필요한 경우에 적합하다.
-- 컨테이너는 일회용으로 만들고, 유지해야 할 데이터는 볼륨에 두는 설계가 재현 가능한 환경의 기반이다.
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                     PORTS                                     NAMES
+50ce25889e11   ubuntu         "cat /data/test.txt"     6 seconds ago   Exited (0) 5 seconds ago                                             vol-test
+eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   8 minutes ago   Up 8 minutes               0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
 
 ## 9. Git 설정 및 GitHub 연동
 
