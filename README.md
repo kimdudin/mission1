@@ -53,6 +53,7 @@ git version 2.53.0
 - [x] Docker 볼륨 영속성
 - [x] Git 설정
 - [x] GitHub/VSCode 연동 증거
+- [x] (보너스) GitHub SSH 키 설정
 
 ## 4. 터미널 조작 로그
 
@@ -542,6 +543,36 @@ branch.main.remote=origin
 - GitHub는 Git 저장소를 인터넷에 올려 **백업, 공유, 협업**을 하게 해 주는 **원격 플랫폼**이다. (`push`, `pull`)
 - 실습에서 확인: 로컬에서 `commit`만 한 상태는 GitHub에 없었고, `push`한 뒤 저장소 페이지에 반영되었다. 원격에 새 commit이 있어 push가 거부되었을 때는 `pull` 후 합쳐서 해결했다.
 
+### 9-1. (보너스) GitHub SSH 키 설정
+
+- HTTPS 대신 SSH 키로 push하도록 설정했다.
+
+```
+$ ssh-keygen -t ed25519 -C "kimdudin-mission1"
+(출력)
+$ ls ~/.ssh
+(출력)
+$ ssh-keygen -lf ~/.ssh/id_ed25519.pub
+(출력: 지문(fingerprint)만 기록)
+$ ssh -T git@github.com
+Hi kimdudin! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+- 공개 키(`id_ed25519.pub`)를 GitHub의 Settings → SSH and GPG keys에 등록했다. 비공개 키는 기록하지 않는다.
+
+#### 저장소 주소 변경 (HTTPS → SSH)
+```
+$ git remote -v
+(변경 전 출력)
+$ git remote set-url origin git@github.com:kimdudin/mission1.git
+$ git remote -v
+(변경 후 출력)
+$ git push
+(출력: To github.com:kimdudin/mission1.git ... main -> main)
+```
+
+- 환경 종속: SSH 키는 환경(컴퓨터/WSL 배포판)마다 따로 만들어 GitHub에 등록해야 한다. 이 키는 WSL Ubuntu(`sj@DESKTOP-5FDLLKE`)에서 만들었다.
+
 
 ## 10. 트러블슈팅
 
@@ -587,3 +618,4 @@ branch.main.remote=origin
 - 원인 가설: 원격에 로컬에 없는 commit이 있음
 - 확인: `git log --oneline`으로 원격에만 있는 commit 확인
 - 해결: `git pull --no-rebase`로 합친 뒤 `git push`
+
