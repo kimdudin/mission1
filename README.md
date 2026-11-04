@@ -582,17 +582,20 @@ $ git push
 - 확인: `wsl --list --verbose`로 배포판 목록 확인
 - 해결: `wsl --install -d Ubuntu`로 직접 설치
 
+
 ### 10-2. VSCode 터미널이 PowerShell로 열림
 - 문제: 프롬프트가 `PS Microsoft.PowerShell.Core\FileSystem::\\wsl.localhost\Ubuntu\...`로 표시됨
 - 원인 가설: WSL 연결 없이 네트워크 경로로 폴더를 열었음
 - 확인: VSCode 왼쪽 아래에 `WSL: Ubuntu` 표시 여부 확인
 - 해결: Ubuntu 터미널에서 `cd ~/mission1` 후 `code .`로 실행
 
+
 ### 10-3. git commit 실패 (empty ident name)
 - 문제: `fatal: empty ident name not allowed`
 - 원인 가설: 새 컴퓨터라 Git 사용자 정보가 비어 있음
 - 확인: 오류 메시지가 `user.name`, `user.email` 설정을 안내
 - 해결: `git config --global user.name`, `user.email` 설정 후 재시도
+
 
 ### 10-4. 이미지를 다시 만들었는데 바뀐 문구가 그대로 나옴
 - 문제: `index.html`을 원래 문구로 되돌렸다고 생각했는데 `curl`에 바인드 마운트 실습 때의 문구가 계속 나옴
@@ -601,11 +604,13 @@ $ git push
 - 해결: `sed`로 파일 복원 후 `docker rm -f web web-bind`, `docker build`, `docker run`을 다시 실행
 - 배운 점: `COPY`로 만든 이미지는 빌드 시점의 파일이 고정되고, 바인드 마운트는 호스트 파일을 실시간으로 본다.
 
+
 ### 10-5. docker stats 옵션 오타
 - 문제: `docker stats --no--stream` 실행 시 `unknown flag: --no--stream`
 - 원인 가설: 옵션 이름의 하이픈을 잘못 입력함
 - 확인: 오류 메시지의 `Usage` 안내와 `docker stats --help`
 - 해결: `docker stats --no-stream`으로 수정해 정상 출력
+
 
 ### 10-6. 컨테이너 이름 충돌
 - 문제: `docker run --name web-bind ...` 실행 시 `Conflict. The container name "/web-bind" is already in use`
@@ -613,9 +618,104 @@ $ git push
 - 확인: 오류 메시지의 기존 컨테이너 ID, `docker ps -a`로 목록 확인
 - 해결: `docker rm -f web-bind`로 삭제한 뒤 다시 실행
 
+
 ### 10-7. git push 거부 (fetch first)
 - 문제: `! [rejected] main -> main (fetch first)`
 - 원인 가설: 원격에 로컬에 없는 commit이 있음
 - 확인: `git log --oneline`으로 원격에만 있는 commit 확인
 - 해결: `git pull --no-rebase`로 합친 뒤 `git push`
 
+
+### 10-8. 포트 충돌 (port is already allocated) 진단과 해제
+
+- 문제: 같은 호스트 포트(8080)로 두 번째 컨테이너를 실행하자 오류가 발생했다.
+- 원인 가설: 8080 포트를 다른 컨테이너 또는 프로세스가 이미 점유하고 있다.
+- 실행 환경: Windows + WSL2(Ubuntu), Docker Desktop (호스트 `DESKTOP-5FDLLKE`)
+
+#### 1) 재현
+```
+$ docker run -d --name web2 -p 8080:80 mission1-web
+(web2 컨테이너 ID. 앞 12자리는 1e1a4eb13082)
+$ docker run -d --name web -p 8080:80 mission1-web
+(오류 전체 문장: ... Bind for 0.0.0.0:8080 failed: port is already allocated)
+```
+
+#### 2) 확인: 누가 포트를 쓰는가
+```
+$ docker ps -a
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+e8c3addb75eb   mission1-web   "/docker-entrypoint.…"   9 minutes ago   Created                                                  web
+1e1a4eb13082   mission1-web   "/docker-entrypoint.…"   9 minutes ago   Up 9 minutes   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web2
+
+$ docker ps --filter "publish=8080"
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+1e1a4eb13082   mission1-web   "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web2
+
+$ docker port web2
+80/tcp -> 0.0.0.0:8080
+80/tcp -> [::]:8080
+
+$ ss -ltnp | grep 8080
+LISTEN 0      4096                *:8080            *:*
+```
+- `web`은 컨테이너만 만들어지고 시작하지 못해 `Created` 상태로 남았다.
+- `docker ps --filter`와 `docker port`로 8080의 점유자가 `web2` 컨테이너임을 확인했다.
+- `ss`는 LISTEN 상태만 보여 준다. Docker Desktop은 포트를 Docker 프록시가 대신 열기 때문에 WSL의 `ss`에는 소유 프로세스(PID)가 표시되지 않는다.
+
+#### 3) 해제 및 재시작
+```
+$ docker rm web
+web
+$ docker stop web2
+web2
+$ docker rm web2
+web2
+$ docker run -d --name web -p 8080:80 mission1-web
+435adf8acb4e298d02f5ef64b6269db29fc4fcce1c474123849c930fcecfe34c
+$ curl http://localhost:8080
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello from my custom NGINX container</h1></body>
+</html>
+$ docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                     NAMES
+435adf8acb4e   mission1-web   "/docker-entrypoint.…"   20 seconds ago   Up 19 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+```
+- 실패한 `web`을 지우고 점유자 `web2`를 중지, 삭제한 뒤 같은 포트로 다시 실행하자 정상 접속되었다.
+
+#### 4) 우회: 다른 호스트 포트 사용
+```
+$ docker run -d --name web3 -p 8081:80 mission1-web
+e9acb3e57e4836b895eea2f9767aedd240dc7a8cf929e35ba8fbcf0978845d38
+$ curl http://localhost:8081
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello from my custom NGINX container</h1></body>
+</html>
+$ docker ps -a
+CONTAINER ID   IMAGE          COMMAND                  CREATED              STATUS              PORTS                                     NAMES
+e9acb3e57e48   mission1-web   "/docker-entrypoint.…"   31 seconds ago       Up 30 seconds       0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   web3
+435adf8acb4e   mission1-web   "/docker-entrypoint.…"   About a minute ago   Up About a minute   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+```
+- 컨테이너 포트(80)는 그대로 두고 호스트 포트만 8081로 바꾸면, 8080을 쓰는 컨테이너와 동시에 실행할 수 있다.
+
+#### 정리: 확인 → 해제 → 재시작 흐름
+| 단계 | 점유자가 컨테이너 | 점유자가 일반 프로세스 |
+|---|---|---|
+| 확인 | `docker ps --filter "publish=8080"`, `docker port` | `ss -ltnp`, `lsof -i :8080` |
+| 해제 | `docker stop`, `docker rm` | `kill <PID>` |
+| 재시작 | 같은 포트로 `docker run` | 같은 포트로 `docker run` |
+| 우회 | `-p 8081:80`처럼 호스트 포트 변경 | 호스트 포트 변경 |
+| 검증 | `curl`, `docker ps`의 PORTS 열 | `ss`에서 포트 사라짐 확인 |
+
+- 주의: Docker Desktop 자체나 시스템 프로세스는 종료하지 않는다.
+- 이 실습에서는 컨테이너가 점유한 경우를 직접 실행해 검증했고, 일반 프로세스 열은 일반적인 절차이다.
+
+
+### 10-9. 새 컴퓨터에서 이미지를 찾을 수 없음
+- 문제: `docker run ... mission1-web` 실행 시 `Unable to find image 'mission1-web:latest' locally`, `pull access denied`
+- 원인 가설: 이미지는 Git 저장소에 포함되지 않아 새 환경에는 없음
+- 확인: `docker images`에 `mission1-web`이 없음
+- 해결: `app/` 폴더에서 `docker build -t mission1-web .`로 이미지를 빌드한 뒤 실행
