@@ -1,0 +1,13 @@
+services:
+  web: ##지금까지 만든 NGINX 서버
+    build: ../../app
+    image: mission1-web
+    ports:
+      - "${WEB_PORT:-8080}:80" 
+  client: ##웹서버에 접속해볼 보조 서비스
+    image: alpine:3.20
+    command: sleep 3600 ##컨테이너가 바로 종료되지 않도록 사용
+    environment:
+      - APP_MODE=${APP_MODE:-dev}
+    depends_on: ##시작 순서 정해줌
+      - web
