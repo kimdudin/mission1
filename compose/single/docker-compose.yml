@@ -1,0 +1,7 @@
+services:
+  web:
+    build: ../../app
+    image: mission1-web
+    container_name: compose-web
+    ports:
+      - "8080:80"

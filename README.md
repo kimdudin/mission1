@@ -451,13 +451,13 @@ local     mydata
 ```
 
 #### 컨테이너에 볼륨 연결 후 데이터 쓰기
-```
+
 $ docker run --name vol-test -v mydata:/data ubuntu bash -c "echo 'persistent data' > /data/test.txt && cat /data/test.txt"
 persistent data
-```
+
 
 #### 컨테이너 삭제 전/후
-```
+
 $ docker ps -a        # 삭제 전: vol-test 존재
 CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                     PORTS                                     NAMES
 50ce25889e11   ubuntu         "cat /data/test.txt"     6 seconds ago   Exited (0) 5 seconds ago                                             vol-test
@@ -471,16 +471,16 @@ $ docker ps -a        # 삭제 후: vol-test 없음
 CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                   PORTS                                     NAMES
 eeeaf06452fe   mission1-web   "/docker-entrypoint.…"   9 minutes ago   Up 9 minutes             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
 (이하 test-ubuntu, wizardly_haslett, flamboyant_vaughan 행 생략)
-```
+
 
 #### 컨테이너 삭제 후 새 컨테이너로 데이터 확인
-```
+
 $ docker run --rm -v mydata:/data ubuntu cat /data/test.txt
 persistent data
-```
+
 
 #### 볼륨 상세
-```
+
 $ docker volume inspect mydata
 [
     {
@@ -493,7 +493,7 @@ $ docker volume inspect mydata
         "Scope": "local"
     }
 ]
-```
+
 
 #### 정리
 - 볼륨은 Docker가 관리하는 저장 공간으로, 컨테이너의 수명과 분리되어 있다. 컨테이너를 삭제해도 데이터가 남는다.
@@ -503,7 +503,6 @@ $ docker volume inspect mydata
 
 ## 9. Git 설정 및 GitHub 연동
 
-```bash
 $ git config --list
 user.name=kimdudin
 user.email=(마스킹)
@@ -515,7 +514,7 @@ core.logallrefupdates=true
 remote.origin.url=https://github.com/kimdudin/mission1.git
 remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
 branch.main.remote=origin
-```
+
 
 ![VSCode GitHub 로그인 및 push 성공](docs/images/github-vscode-login.png)
 
@@ -545,23 +544,49 @@ branch.main.remote=origin
 
 ### 9-1. (보너스) GitHub SSH 키 설정
 
-- HTTPS 대신 SSH 키로 push하도록 설정했다.
+- HTTPS + 토큰 대신 SSH 키로 push하도록 설정했다.
 
-```
+
 $ ssh-keygen -t ed25519 -C "kimdudin-mission1"
-(출력)
-$ ls ~/.ssh
-(출력)
+(키 생성 출력)
+$ ls -l ~/.ssh
+(ls -l 출력)
 $ ssh-keygen -lf ~/.ssh/id_ed25519.pub
-(출력: 지문(fingerprint)만 기록)
-$ ssh -T git@github.com
-Hi kimdudin! You've successfully authenticated, but GitHub does not provide shell access.
-```
+(지문 출력)
+
 
 - 공개 키(`id_ed25519.pub`)를 GitHub의 Settings → SSH and GPG keys에 등록했다. 비공개 키는 기록하지 않는다.
+- 비공개 키 `id_ed25519`는 권한이 `-rw-------`(600)이라 소유자만 읽고 쓸 수 있다. (5번 권한 실습과 같은 원리)
+
+#### 연결 확인
+
+$ ssh -T git@github.com
+Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.
+Hi kimdudin! You've successfully authenticated, but GitHub does not provide shell access.
+
+
+#### 저장소 주소를 SSH로 변경하고 push
+
+$ git remote set-url origin git@github.com:kimdudin/mission1.git
+$ git remote -v
+origin  git@github.com:kimdudin/mission1.git (fetch)
+origin  git@github.com:kimdudin/mission1.git (push)
+$ git push
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 2.22 KiB | 2.22 MiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To github.com:kimdudin/mission1.git
+   888d31f..2f5ff05  main -> main
+
+- push 대상이 `To github.com:kimdudin/mission1.git`(SSH 형식)이다. 이전 HTTPS push는 `To https://github.com/...`으로 표시되었다.
+- 환경 종속: SSH 키는 환경(컴퓨터/WSL 배포판)마다 따로 만들어 GitHub에 등록해야 한다. 이 키는 `sj@DESKTOP-5FDLLKE`에서 만들었다.
 
 #### 저장소 주소 변경 (HTTPS → SSH)
-```
+
 $ git remote -v
 (변경 전 출력)
 $ git remote set-url origin git@github.com:kimdudin/mission1.git
@@ -569,7 +594,7 @@ $ git remote -v
 (변경 후 출력)
 $ git push
 (출력: To github.com:kimdudin/mission1.git ... main -> main)
-```
+
 
 - 환경 종속: SSH 키는 환경(컴퓨터/WSL 배포판)마다 따로 만들어 GitHub에 등록해야 한다. 이 키는 WSL Ubuntu(`sj@DESKTOP-5FDLLKE`)에서 만들었다.
 
@@ -633,12 +658,12 @@ $ git push
 - 실행 환경: Windows + WSL2(Ubuntu), Docker Desktop (호스트 `DESKTOP-5FDLLKE`)
 
 #### 1) 재현
-```
+
 $ docker run -d --name web2 -p 8080:80 mission1-web
 (web2 컨테이너 ID. 앞 12자리는 1e1a4eb13082)
 $ docker run -d --name web -p 8080:80 mission1-web
 (오류 전체 문장: ... Bind for 0.0.0.0:8080 failed: port is already allocated)
-```
+
 
 #### 2) 확인: 누가 포트를 쓰는가
 ```
@@ -657,13 +682,13 @@ $ docker port web2
 
 $ ss -ltnp | grep 8080
 LISTEN 0      4096                *:8080            *:*
-```
+
 - `web`은 컨테이너만 만들어지고 시작하지 못해 `Created` 상태로 남았다.
 - `docker ps --filter`와 `docker port`로 8080의 점유자가 `web2` 컨테이너임을 확인했다.
 - `ss`는 LISTEN 상태만 보여 준다. Docker Desktop은 포트를 Docker 프록시가 대신 열기 때문에 WSL의 `ss`에는 소유 프로세스(PID)가 표시되지 않는다.
 
 #### 3) 해제 및 재시작
-```
+
 $ docker rm web
 web
 $ docker stop web2
@@ -681,11 +706,11 @@ $ curl http://localhost:8080
 $ docker ps
 CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                     NAMES
 435adf8acb4e   mission1-web   "/docker-entrypoint.…"   20 seconds ago   Up 19 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
-```
+
 - 실패한 `web`을 지우고 점유자 `web2`를 중지, 삭제한 뒤 같은 포트로 다시 실행하자 정상 접속되었다.
 
 #### 4) 우회: 다른 호스트 포트 사용
-```
+
 $ docker run -d --name web3 -p 8081:80 mission1-web
 e9acb3e57e4836b895eea2f9767aedd240dc7a8cf929e35ba8fbcf0978845d38
 $ curl http://localhost:8081
@@ -719,3 +744,64 @@ e9acb3e57e48   mission1-web   "/docker-entrypoint.…"   31 seconds ago       Up
 - 원인 가설: 이미지는 Git 저장소에 포함되지 않아 새 환경에는 없음
 - 확인: `docker images`에 `mission1-web`이 없음
 - 해결: `app/` 폴더에서 `docker build -t mission1-web .`로 이미지를 빌드한 뒤 실행
+
+
+### 11-1. 단일 서비스
+
+**목적:** 지금까지 `docker run` 옵션으로 입력하던 실행 방법을 `docker-compose.yml` 파일로 문서화하고, Compose로 단일 서비스를 실행한다.
+
+#### docker-compose.yml
+
+$ cat compose/single/docker-compose.yml
+services:
+  web:
+    build: ../../app
+    image: mission1-web
+    container_name: compose-web
+    ports:
+      - "8080:80"
+
+
+- `services`: 실행할 서비스 목록이다. 여기서는 `web` 하나다.
+- `build: ../../app`: `app/Dockerfile`로 이미지를 빌드한다. (파일 위치 `compose/single` 기준 상대 경로)
+- `image: mission1-web`: 빌드한 이미지의 이름이다.
+- `container_name: compose-web`: 컨테이너 이름이다.
+- `ports: "8080:80"`: 호스트 8080 포트를 컨테이너 80 포트에 연결한다. `docker run -p 8080:80`과 같다.
+
+#### 실행과 확인
+
+$ cd compose/single
+$ docker compose up -d --build
+[+] up 3/3
+ ✔ Image mission1-web     Built                                                                                                                                                                      3.9s
+ ✔ Network single_default Created                                                                                                                                                                    0.0s
+ ✔ Container compose-web  Started
+
+$ docker compose ps
+NAME          IMAGE          COMMAND                  SERVICE   CREATED          STATUS          PORTS
+compose-web   mission1-web   "/docker-entrypoint.…"   web       15 seconds ago   Up 14 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ curl http://localhost:8080
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>mission1</title></head>
+<body><h1>Hello from my custom NGINX container</h1></body>
+</html>
+
+$ docker compose down
+[+] down 2/2
+ ✔ Container compose-web  Removed                                                                                                                                                                    0.4s
+ ✔ Network single_default Removed
+
+
+#### docker run과 비교
+
+# 지금까지의 방식 (명령어로만 존재)
+docker build -t mission1-web ./app
+docker run -d --name web -p 8080:80 mission1-web
+
+# Compose 방식 (파일로 남음)
+docker compose up -d --build
+
+- `docker run`은 명령을 기억하거나 문서에서 찾아 입력해야 하고, 옵션이 늘수록 틀리기 쉽다.
+- Compose는 이미지, 이름, 포트 같은 실행 설정이 **파일 하나에 문서화**된다. 이 파일을 저장소에 넣으면 누구나 같은 명령 한 줄로 같은 환경을 재현할 수 있다.
